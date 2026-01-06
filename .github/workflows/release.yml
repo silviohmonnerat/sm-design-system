@@ -1,0 +1,95 @@
+name: Release Monorepo
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build
+      - run: pnpm turbo run type-check
+
+  publish:
+    name: Publish (npm)
+    needs: ci
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+
+      - name: Detect changed packages
+        id: changes
+        run: |
+          PACKAGES=$(pnpm changeset status --json | jq -r '.releases[].name' | tr '\n' ' ')
+          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+
+      - name: Skip if no changes
+        if: steps.changes.outputs.packages == ''
+        run: echo "No packages changed"
+
+      - name: Version packages
+        if: steps.changes.outputs.packages != ''
+        run: pnpm changeset version
+
+      - name: Commit version bump
+        if: steps.changes.outputs.packages != ''
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "chore(release): version packages" || echo "Nothing to commit"
+          git push
+
+      - name: Build changed packages
+        if: steps.changes.outputs.packages != ''
+        run: |
+          for PKG in ${{ steps.changes.outputs.packages }}; do
+            pnpm turbo run build --filter=$PKG
+          done
+
+      - name: Publish with npm provenance
+        if: steps.changes.outputs.packages != ''
+        run: pnpm changeset publish
+
+      - name: Create GitHub Release
+        if: steps.changes.outputs.packages != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
