@@ -36,9 +36,7 @@ importers:
         specifier: ^4.3.5
         version: 4.3.5
 
-  packages/helpers: {}
-
-  packages/hooks:
+  packages/react-hooks:
     dependencies:
       react:
         specifier: '>=18'
@@ -198,6 +196,8 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
+
+  packages/utils: {}
 
 packages:
 
