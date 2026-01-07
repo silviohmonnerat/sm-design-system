@@ -80,5 +80,7 @@
     },
     "./globals.css": "./dist/styles/globals.css"
   },
-  "sideEffects": ["./dist/styles/*.css"]
+  "sideEffects": [
+    "./dist/styles/*.css"
+  ]
 }
