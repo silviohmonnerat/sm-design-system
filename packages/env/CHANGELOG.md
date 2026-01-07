@@ -1,5 +1,11 @@
 # @silviomonnerat/env
 
+## 4.0.0
+
+### Major Changes
+
+- a3d513b: normalise
+
 ## 3.0.0
 
 ### Major Changes

@@ -1,5 +1,16 @@
 # @silviomonnerat/ui
 
+## 4.0.0
+
+### Major Changes
+
+- a3d513b: normalise
+
+### Patch Changes
+
+- Updated dependencies [a3d513b]
+  - @silviomonnerat/hooks@4.0.0
+
 ## 3.0.0
 
 ### Major Changes
