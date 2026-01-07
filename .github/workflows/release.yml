@@ -27,22 +27,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node (no cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Prepare pnpm
-        run: corepack prepare pnpm@10.25.0 --activate
-
-      - name: Setup Node (pnpm cache)
+      - name: Setup Node + pnpm
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+
+      - name: Enable Corepack & pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.25.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -63,14 +57,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - run: corepack enable
-      - run: corepack prepare pnpm@10.25.0 --activate
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
           cache: pnpm
+
+      - run: |
+          corepack enable
+          corepack prepare pnpm@10.25.0 --activate
 
       - run: pnpm install --frozen-lockfile
 
@@ -97,14 +88,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - run: corepack enable
-      - run: corepack prepare pnpm@10.25.0 --activate
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
           cache: pnpm
+
+      - run: |
+          corepack enable
+          corepack prepare pnpm@10.25.0 --activate
 
       - run: pnpm install --frozen-lockfile
 
@@ -129,7 +117,6 @@ jobs:
 
     permissions:
       contents: write
-      id-token: write
 
     steps:
       - name: Checkout
@@ -137,24 +124,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node (no cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Prepare pnpm
-        run: corepack prepare pnpm@10.25.0 --activate
-
-      - name: Setup Node (pnpm cache)
+      - name: Setup Node + pnpm
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
           cache: pnpm
+
+      - name: Enable Corepack & pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.25.0 --activate
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -180,10 +160,12 @@ jobs:
         run: pnpm turbo run build
 
       ##############################################
-      # PUBLISH (OIDC)
+      # PUBLISH (TOKEN CLÁSSICO)
       ##############################################
-      - name: Publish to npm (OIDC provenance)
+      - name: Publish to npm
         run: pnpm changeset publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       ##############################################
       # GITHUB RELEASE
