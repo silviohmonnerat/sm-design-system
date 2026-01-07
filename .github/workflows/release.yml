@@ -12,40 +12,18 @@ on:
 
 permissions:
   contents: write
+  packages: write
+
+env:
+  NODE_VERSION: 20
+  PNPM_VERSION: 10.25.0
 
 jobs:
   ##############################################
-  # SETUP
-  ##############################################
-  setup:
-    name: Setup
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install pnpm
-        run: npm install -g pnpm@10.25.0
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-  ##############################################
-  # BUILD + TYPECHECK
+  # BUILD + TYPECHECK (PR + PUSH)
   ##############################################
   build:
-    name: Build
-    needs: setup
+    name: Build & Typecheck
     runs-on: ubuntu-latest
 
     steps:
@@ -53,13 +31,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-
-      - name: Install pnpm
-        run: npm install -g pnpm@10.25.0
 
       - run: pnpm install --frozen-lockfile
 
@@ -67,9 +46,10 @@ jobs:
       - run: pnpm turbo run type-check
 
   ##############################################
-  # DRY RUN (PR)
+  # DRY RUN (ONLY PR)
   ##############################################
   dry-run:
+    name: Changeset Dry Run
     if: github.event_name == 'pull_request'
     needs: build
     runs-on: ubuntu-latest
@@ -79,23 +59,25 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - name: Install pnpm
-        run: npm install -g pnpm@10.25.0
-
       - run: pnpm install --frozen-lockfile
-      - run: pnpm changeset status || true
-      - run: pnpm turbo run build --dry-run || true
-      - run: pnpm changeset publish --dry-run || true
+
+      - run: pnpm changeset status
+      - run: pnpm changeset publish --dry-run
 
   ##############################################
-  # PUBLISH
+  # RELEASE (ONLY PUSH)
   ##############################################
-  publish:
+  release:
+    name: Release & Publish
     if: github.event_name == 'push'
     needs: build
     runs-on: ubuntu-latest
@@ -106,19 +88,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org
           cache: pnpm
-
-      - name: Install pnpm
-        run: npm install -g pnpm@10.25.0
 
       - run: pnpm install --frozen-lockfile
 
       ##############################################
-      # VERSIONAMENTO
+      # VERSIONAMENTO (Changesets)
       ##############################################
       - name: Version packages
         run: pnpm changeset version
@@ -130,40 +113,6 @@ jobs:
           git add .
           git commit -m "chore(release): version packages" || echo "Nothing to commit"
           git push
-
-      ##############################################
-      # TAGS POR PACOTE
-      ##############################################
-      - name: Create package tags
-        run: |
-          node <<'EOF'
-          const fs = require('fs')
-          const path = require('path')
-          const { execSync } = require('child_process')
-
-          const pkgsDir = path.join(process.cwd(), 'packages')
-          const tags = []
-
-          for (const dir of fs.readdirSync(pkgsDir)) {
-            const pkgPath = path.join(pkgsDir, dir, 'package.json')
-            if (!fs.existsSync(pkgPath)) continue
-
-            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
-            if (pkg.private) continue
-
-            const diff = execSync(`git diff HEAD~1 HEAD -- ${pkgPath}`).toString()
-            if (!diff.includes('"version"')) continue
-
-            const tag = `${pkg.name}@${pkg.version}`
-            
-            tags.push(tag)
-            execSync(`git tag "${tag}"`)
-          }
-
-          if (tags.length) {
-            execSync(`git push origin ${tags.map(t => `"${t}"`).join(' ')}`)
-          }
-          EOF
 
       ##############################################
       # BUILD FINAL
@@ -179,7 +128,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       ##############################################
-      # GITHUB RELEASE POR PACOTE
+      # GITHUB RELEASE (TAG POR PACKAGE)
       ##############################################
       - name: Create GitHub Releases per package
         run: |
