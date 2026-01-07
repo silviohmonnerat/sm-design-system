@@ -88,3 +88,52 @@ npm deprecate @silviomonnerat/hooks@"<999.0.0" "Deprecated: incorrect initial re
 npm deprecate @silviomonnerat/env@"<999.0.0" "Deprecated: incorrect initial releases"
 npm deprecate @silviomonnerat/helpers@"<999.0.0" "Deprecated: incorrect initial releases"
 ```
+
+📦 Quando escolher PATCH (1.0.0 → 1.0.1)
+
+Use patch quando:
+
+- 🐛 Bugfix
+- 🧹 Refactor interno
+- ⚡ Performance
+- 📄 Docs internos
+- 🔒 Segurança sem quebra
+- Ajustes que não mudam API pública
+
+Exemplos:
+  
+- Corrigir valor de env
+- Ajustar tipagem interna
+- Corrigir hook sem mudar assinatura
+
+📦 Quando escolher MINOR (1.0.0 → 1.1.0)
+
+Use minor quando:
+
+- ✨ Nova feature
+- ➕ Nova prop
+- ➕ Novo hook
+- ➕ Novo helper
+- API antiga continua funcionando
+
+Exemplos:
+
+- Novo hook em react-hooks
+- Nova variante em ui
+- Nova função utilitária
+
+📦 Quando escolher MAJOR (1.0.0 → 2.0.0)
+
+Use major quando:
+
+- 💥 Quebra de API
+- ❌ Remove algo
+- 🔁 Muda comportamento esperado
+- ⚠️ Muda contrato público
+
+Exemplos
+
+- Remove prop
+- Muda nome de função
+- Hook passa a exigir novo parâmetro
+- Componente muda comportamento default
