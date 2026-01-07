@@ -17,6 +17,7 @@
     "dev": "tsup src/index.ts --format esm --dts --watch",
     "build": "tsup",
     "lint": "eslint . --max-warnings 0",
+    "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
