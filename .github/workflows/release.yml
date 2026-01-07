@@ -1,17 +1,47 @@
-name: Release Monorepo
+name: Release Monorepo Packages
 
 on:
   pull_request:
+    branches:
+      - "**"
   push:
     branches:
       - main
+      - release/**
+      - hotfix/**
 
 permissions:
   contents: write
 
 jobs:
-  ci:
-    name: CI
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Prepare pnpm
+        run: corepack prepare pnpm@10.25.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+  build:
+    name: Build
+    needs: setup
     runs-on: ubuntu-latest
 
     steps:
@@ -25,14 +55,48 @@ jobs:
           cache: pnpm
 
       - run: corepack enable
+      - run: corepack prepare pnpm@10.25.0 --activate
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run build
-      - run: pnpm turbo run type-check
+
+      - name: Turbo build (full)
+        run: pnpm turbo run build
+
+      - name: Turbo type-check
+        run: pnpm turbo run type-check
+
+  dry-run:
+    name: Dry Run (PR)
+    if: github.event_name == 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: corepack enable
+      - run: corepack prepare pnpm@10.25.0 --activate
+      - run: pnpm install --frozen-lockfile
+
+      - name: Changeset status
+        run: pnpm changeset status || true
+
+      - name: Turbo dry-run
+        run: pnpm turbo run build --dry-run || true
+
+      - name: Publish dry-run
+        run: pnpm changeset publish --dry-run || true
 
   publish:
     name: Publish (npm)
-    needs: ci
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push'
+    needs: build
     runs-on: ubuntu-latest
     environment: production
 
@@ -41,18 +105,29 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
-      - run: corepack enable
-      - run: pnpm install --frozen-lockfile
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Prepare pnpm
+        run: corepack prepare pnpm@10.25.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Detect changed packages
         id: changes
@@ -60,9 +135,9 @@ jobs:
           PACKAGES=$(pnpm changeset status --json | jq -r '.releases[].name' | tr '\n' ' ')
           echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
 
-      - name: Skip if no changes
+      - name: Skip publish if no changes
         if: steps.changes.outputs.packages == ''
-        run: echo "No packages changed"
+        run: echo "Nenhuma mudança — pulando publish"
 
       - name: Version packages
         if: steps.changes.outputs.packages != ''
@@ -74,17 +149,18 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add .
-          git commit -m "chore(release): version packages" || echo "Nothing to commit"
+          git commit -m "chore(release): version packages" || echo "Nada para commit"
           git push
 
-      - name: Build changed packages
+      - name: Build changed packages (Turbo)
         if: steps.changes.outputs.packages != ''
         run: |
           for PKG in ${{ steps.changes.outputs.packages }}; do
+            echo "🔨 Building $PKG"
             pnpm turbo run build --filter=$PKG
           done
 
-      - name: Publish with npm provenance
+      - name: Publish to npm (OIDC provenance)
         if: steps.changes.outputs.packages != ''
         run: pnpm changeset publish
 

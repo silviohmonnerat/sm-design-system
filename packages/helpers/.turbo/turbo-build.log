@@ -1,6 +1,6 @@
 
 
-> @silviomonnerat/helpers@0.0.1 build /Users/silviomonnerat/Projetos/apps/atd-design-system/packages/helpers
+> @silviomonnerat/helpers@1.0.0 build /Users/silviomonnerat/Projetos/apps/sm-design-system/packages/helpers
 > tsup src/index.ts --format esm --dts
 
 [34mCLI[39m Building entry: src/index.ts
@@ -8,7 +8,7 @@
 [34mCLI[39m Target: node16
 [34mESM[39m Build start
 [32mESM[39m [1mdist/index.js [22m[32m207.00 B[39m
-[32mESM[39m ⚡️ Build success in 14ms
+[32mESM[39m ⚡️ Build success in 11ms
 DTS Build start
-DTS ⚡️ Build success in 467ms
+DTS ⚡️ Build success in 463ms
 DTS dist/index.d.ts 153.00 B
