@@ -1,8 +1,8 @@
 ---
-"@silviomonnerat/env": major
 "@silviomonnerat/helpers": major
 "@silviomonnerat/hooks": major
+"@silviomonnerat/env": major
 "@silviomonnerat/ui": major
 ---
 
-reset version 1.0.0
+Initial public release
