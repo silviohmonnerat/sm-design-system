@@ -26,19 +26,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 1️⃣ Node
+      # 1️⃣ Node (SEM cache)
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 2️⃣ pnpm (OFICIAL)
+      # 2️⃣ pnpm (oficial)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.25.0
 
-      # 3️⃣ Cache pnpm
+      # 3️⃣ Cache pnpm (AGORA pnpm existe)
       - name: Setup pnpm cache
         uses: actions/setup-node@v4
         with:
@@ -60,16 +60,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - name: Setup pnpm cache
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
 
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.25.0
-
       - run: pnpm install --frozen-lockfile
+
       - run: pnpm turbo run build
       - run: pnpm turbo run type-check
 
@@ -86,14 +94,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.25.0
+
+      - name: Setup pnpm cache
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.25.0
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm changeset status || true
@@ -114,22 +129,30 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org
-          cache: pnpm
 
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 10.25.0
+
+      - name: Setup pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
       ##############################################
       # VERSIONAMENTO
       ##############################################
-      - run: pnpm changeset version
+      - name: Version packages
+        run: pnpm changeset version
 
       - name: Commit version bump
         run: |
@@ -186,7 +209,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       ##############################################
-      # GITHUB RELEASES
+      # GITHUB RELEASE POR PACOTE
       ##############################################
       - name: Create GitHub Releases per package
         run: |
