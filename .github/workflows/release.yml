@@ -14,6 +14,9 @@ permissions:
   contents: write
 
 jobs:
+  ##############################################
+  # SETUP
+  ##############################################
   setup:
     name: Setup
     runs-on: ubuntu-latest
@@ -44,6 +47,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+  ##############################################
+  # BUILD + TYPECHECK
+  ##############################################
   build:
     name: Build
     needs: setup
@@ -54,28 +60,29 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node (no cache)
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - run: corepack enable
       - run: corepack prepare pnpm@10.25.0 --activate
 
-      - name: Setup Node (pnpm cache)
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Turbo build (full)
+      - name: Turbo build
         run: pnpm turbo run build
 
       - name: Turbo type-check
         run: pnpm turbo run type-check
 
+  ##############################################
+  # DRY RUN (PR)
+  ##############################################
   dry-run:
     name: Dry Run (PR)
     if: github.event_name == 'pull_request'
@@ -87,16 +94,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node (no cache)
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - run: corepack enable
       - run: corepack prepare pnpm@10.25.0 --activate
 
-      - name: Setup Node (pnpm cache)
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
@@ -106,12 +111,15 @@ jobs:
       - name: Changeset status
         run: pnpm changeset status || true
 
-      - name: Turbo dry-run
+      - name: Build dry-run
         run: pnpm turbo run build --dry-run || true
 
       - name: Publish dry-run
         run: pnpm changeset publish --dry-run || true
 
+  ##############################################
+  # PUBLISH (MAIN / RELEASE / HOTFIX)
+  ##############################################
   publish:
     name: Publish (npm)
     if: github.event_name == 'push'
@@ -151,46 +159,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Detect changed packages
-        id: changes
-        run: |
-          PACKAGES=$(pnpm changeset status --json | jq -r '.releases[].name' | tr '\n' ' ')
-          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
-
-      - name: Skip publish if no changes
-        if: steps.changes.outputs.packages == ''
-        run: echo "Nenhuma mudança — pulando publish"
-
+      ##############################################
+      # VERSIONAMENTO (CI É A FONTE DA VERDADE)
+      ##############################################
       - name: Version packages
-        if: steps.changes.outputs.packages != ''
         run: pnpm changeset version
 
       - name: Commit version bump
-        if: steps.changes.outputs.packages != ''
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add .
-          git commit -m "chore(release): version packages" || echo "Nada para commit"
+          git commit -m "chore(release): version packages" || echo "Nothing to commit"
           git push
 
-      - name: Build changed packages (Turbo)
-        if: steps.changes.outputs.packages != ''
-        run: |
-          for PKG in ${{ steps.changes.outputs.packages }}; do
-            echo "🔨 Building $PKG"
-            pnpm turbo run build --filter=$PKG
-          done
+      ##############################################
+      # BUILD FINAL
+      ##############################################
+      - name: Build packages
+        run: pnpm turbo run build
 
+      ##############################################
+      # PUBLISH (OIDC)
+      ##############################################
       - name: Publish to npm (OIDC provenance)
-        if: steps.changes.outputs.packages != ''
         run: pnpm changeset publish
 
+      ##############################################
+      # GITHUB RELEASE
+      ##############################################
       - name: Create GitHub Release
-        if: steps.changes.outputs.packages != ''
         uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
