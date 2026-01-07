@@ -26,6 +26,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
+# dis
+dist
+**/dist
+
 # Turbo
 .turbo
 **/.turbo
