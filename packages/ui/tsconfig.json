@@ -6,9 +6,13 @@
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": false,
+    "moduleResolution": "Bundler",
     "strict": true,
     "jsx": "react-jsx",
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }
