@@ -1,67 +1,84 @@
 name: Release
 
 on:
-  pull_request:
-    branches: ["**"]
   push:
     branches: [main]
 
 permissions:
   contents: write
   packages: write
+  pull-requests: write
 
 env:
   NODE_VERSION: 20
   PNPM_VERSION: 10.25.0
 
 jobs:
+  ##############################################
+  # BUILD + TYPECHECK
+  ##############################################
   build:
     name: Build & Typecheck
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run build
-      - run: pnpm turbo run type-check
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: Type check
+        run: pnpm turbo run type-check
+
+  ##############################################
+  # VERSION + PUBLISH
+  ##############################################
   release:
     name: Version & Publish
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
     environment: production
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - uses: pnpm/action-setup@v3
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
         with:
           version: ${{ env.PNPM_VERSION }}
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - uses: changesets/action@v1
+      - name: Create release PR or publish
+        uses: changesets/action@v1
         with:
           publish: pnpm changeset publish
         env:
