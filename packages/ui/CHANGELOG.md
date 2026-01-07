@@ -1,5 +1,17 @@
 # @silviomonnerat/ui
 
+## 3.0.0
+
+### Major Changes
+
+- 8b6c86f: normalise packages and release action
+
+### Patch Changes
+
+- Updated dependencies [8b6c86f]
+- Updated dependencies [07f7850]
+  - @silviomonnerat/hooks@3.0.0
+
 ## 2.0.0
 
 ### Major Changes
