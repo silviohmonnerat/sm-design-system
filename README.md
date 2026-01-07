@@ -1,10 +1,12 @@
 ## 📦 ESTRUTURA FINAL RECOMENDADA
 
+```
 packages/
 ├── ui            → @silviomonnerat/ui
 ├── react-hooks   → @silviomonnerat/react-hooks
 ├── env           → @silviomonnerat/env
 ├── utils         → @silviomonnerat/utils
+```
 
 ## 📏 REGRA DE NAMING (DOCUMENTE ISSO)
 
@@ -42,6 +44,15 @@ Nome: utils
 pnpm changeset
 git commit
 git push
+```
+
+```sh
+# código
+git add .
+
+pnpm changeset   # define versão
+
+pnpm commit      # commit convencional
 ```
 
 🔍 PR
