@@ -27,9 +27,7 @@ importers:
         specifier: ^3.24.0
         version: 3.25.76
 
-  packages/helpers: {}
-
-  packages/hooks:
+  packages/react-hooks:
     dependencies:
       react:
         specifier: '>=18'
@@ -119,9 +117,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@silviomonnerat/hooks':
-        specifier: workspace:*
-        version: link:../hooks
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -144,13 +139,13 @@ importers:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react:
-        specifier: '>=19'
+        specifier: '>=18'
         version: 19.2.3
       react-day-picker:
         specifier: ^9.13.0
         version: 9.13.0(react@19.2.3)
       react-dom:
-        specifier: '>=19'
+        specifier: '>=18'
         version: 19.2.3(react@19.2.3)
       react-hook-form:
         specifier: ^7.69.0
@@ -192,6 +187,8 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.3
+
+  packages/utils: {}
 
 packages:
 

@@ -1,5 +1,5 @@
 {
-  "name": "@silviomonnerat/env",
+  "name": "@silviomonnerat/utils",
   "version": "0.0.0",
   "type": "module",
   "main": "dist/index.js",
@@ -16,8 +16,5 @@
     "build": "tsup src/index.ts --format esm --dts",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "zod": "^3.24.0"
   }
 }

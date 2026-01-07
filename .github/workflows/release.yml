@@ -1,21 +1,24 @@
-name: Release Monorepo Packages
+name: Release
 
 on:
-  pull_request:
-    branches:
-      - "**"
   push:
-    branches:
-      - main
-      - release/**
-      - hotfix/**
+    branches: [main]
 
 permissions:
   contents: write
+  packages: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: 20
+  PNPM_VERSION: 10.25.0
 
 jobs:
-  setup:
-    name: Setup
+  ##############################################
+  # BUILD + TYPECHECK
+  ##############################################
+  build:
+    name: Build & Typecheck
     runs-on: ubuntu-latest
 
     steps:
@@ -24,173 +27,60 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Node (no cache)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Prepare pnpm
-        run: corepack prepare pnpm@10.25.0 --activate
-
-      - name: Setup Node (pnpm cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-  build:
-    name: Build
-    needs: setup
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node (no cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: corepack enable
-      - run: corepack prepare pnpm@10.25.0 --activate
-
-      - name: Setup Node (pnpm cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Turbo build (full)
+      - name: Build
         run: pnpm turbo run build
 
-      - name: Turbo type-check
+      - name: Type check
         run: pnpm turbo run type-check
 
-  dry-run:
-    name: Dry Run (PR)
-    if: github.event_name == 'pull_request'
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node (no cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - run: corepack enable
-      - run: corepack prepare pnpm@10.25.0 --activate
-
-      - name: Setup Node (pnpm cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Changeset status
-        run: pnpm changeset status || true
-
-      - name: Turbo dry-run
-        run: pnpm turbo run build --dry-run || true
-
-      - name: Publish dry-run
-        run: pnpm changeset publish --dry-run || true
-
-  publish:
-    name: Publish (npm)
-    if: github.event_name == 'push'
+  ##############################################
+  # VERSION + PUBLISH
+  ##############################################
+  release:
+    name: Version & Publish
     needs: build
     runs-on: ubuntu-latest
     environment: production
 
-    permissions:
-      contents: write
-      id-token: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup Node (no cache)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          registry-url: https://registry.npmjs.org
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Prepare pnpm
-        run: corepack prepare pnpm@10.25.0 --activate
-
-      - name: Setup Node (pnpm cache)
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Detect changed packages
-        id: changes
-        run: |
-          PACKAGES=$(pnpm changeset status --json | jq -r '.releases[].name' | tr '\n' ' ')
-          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
-
-      - name: Skip publish if no changes
-        if: steps.changes.outputs.packages == ''
-        run: echo "Nenhuma mudança — pulando publish"
-
-      - name: Version packages
-        if: steps.changes.outputs.packages != ''
-        run: pnpm changeset version
-
-      - name: Commit version bump
-        if: steps.changes.outputs.packages != ''
-        run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add .
-          git commit -m "chore(release): version packages" || echo "Nada para commit"
-          git push
-
-      - name: Build changed packages (Turbo)
-        if: steps.changes.outputs.packages != ''
-        run: |
-          for PKG in ${{ steps.changes.outputs.packages }}; do
-            echo "🔨 Building $PKG"
-            pnpm turbo run build --filter=$PKG
-          done
-
-      - name: Publish to npm (OIDC provenance)
-        if: steps.changes.outputs.packages != ''
-        run: pnpm changeset publish
-
-      - name: Create GitHub Release
-        if: steps.changes.outputs.packages != ''
-        uses: softprops/action-gh-release@v2
+      - name: Create release PR or publish
+        uses: changesets/action@v1
         with:
-          generate_release_notes: true
+          publish: pnpm changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

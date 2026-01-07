@@ -1,6 +1,6 @@
 
 
-> @silviomonnerat/ui@1.0.0 build /Users/silviomonnerat/Projetos/apps/sm-design-system/packages/ui
+> @silviomonnerat/ui@0.0.0 build /Users/silviomonnerat/Projetos/apps/sm-design-system/packages/ui
 > tsup
 
 [34mCLI[39m Building entry: src/index.ts
@@ -11,7 +11,7 @@
 [34mCLI[39m Cleaning output folder
 [34mESM[39m Build start
 [32mESM[39m [1mdist/index.js [22m[32m152.72 KB[39m
-[32mESM[39m ⚡️ Build success in 23ms
+[32mESM[39m ⚡️ Build success in 50ms
 DTS Build start
-DTS ⚡️ Build success in 1676ms
+DTS ⚡️ Build success in 2176ms
 DTS dist/index.d.ts 45.49 KB
