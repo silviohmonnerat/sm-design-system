@@ -1,1 +1,6 @@
+# Skip commitlint in CI (GitHub Actions, changesets, etc)
+if [ "$CI" = "true" ]; then
+  exit 0
+fi
+
 pnpm commitlint --edit "$1"
