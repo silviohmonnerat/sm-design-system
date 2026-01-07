@@ -163,7 +163,7 @@ jobs:
           git push
 
       ##############################################
-      # TAGS POR PACOTE
+      # TAGS POR PACOTE (IDEMPOTENTE)
       ##############################################
       - name: Create package tags
         run: |
@@ -173,7 +173,10 @@ jobs:
           const { execSync } = require('child_process')
 
           const pkgsDir = path.join(process.cwd(), 'packages')
-          const tags = []
+          const created = []
+
+          // garante tags atualizadas
+          execSync('git fetch --tags', { stdio: 'inherit' })
 
           for (const dir of fs.readdirSync(pkgsDir)) {
             const pkgPath = path.join(pkgsDir, dir, 'package.json')
@@ -182,16 +185,30 @@ jobs:
             const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
             if (pkg.private) continue
 
+            // só cria tag se a versão mudou neste commit
             const diff = execSync(`git diff HEAD~1 HEAD -- ${pkgPath}`).toString()
             if (!diff.includes('"version"')) continue
 
             const tag = `${pkg.name}@${pkg.version}`
-            tags.push(tag)
+
+            // verifica se a tag já existe
+            try {
+              execSync(`git rev-parse "${tag}"`, { stdio: 'ignore' })
+              console.log(`🔁 Tag já existe, pulando: ${tag}`)
+              continue
+            } catch {
+              // tag não existe → cria
+            }
+
+            console.log(`🏷️ Criando tag ${tag}`)
             execSync(`git tag "${tag}"`)
+            created.push(tag)
           }
 
-          if (tags.length) {
-            execSync(`git push origin ${tags.map(t => `"${t}"`).join(' ')}`)
+          if (created.length > 0) {
+            execSync(`git push origin ${created.map(t => `"${t}"`).join(' ')}`)
+          } else {
+            console.log('Nenhuma nova tag para criar.')
           }
           EOF
 
