@@ -1,0 +1,166 @@
+name: Release Monorepo Packages
+
+on:
+  pull_request:
+    branches:
+      - "**"
+  push:
+    branches:
+      - main
+      - release/**
+      - hotfix/**
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  NODE_VERSION: 20
+  PNPM_VERSION: 10.25.0
+
+jobs:
+  ##############################################
+  # CHECK CHANGESET
+  ##############################################
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Ensure changeset exists
+        run: pnpm changeset status --since=origin/main
+
+  ##############################################
+  # BUILD + TYPECHECK (PR + PUSH)
+  ##############################################
+  build:
+    name: Build & Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm turbo run build
+      - run: pnpm turbo run type-check
+
+  ##############################################
+  # DRY RUN (ONLY PR)
+  ##############################################
+  dry-run:
+    name: Changeset Dry Run
+    if: github.event_name == 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm changeset status
+      - run: pnpm changeset publish --dry-run
+
+  ##############################################
+  # RELEASE (ONLY PUSH)
+  ##############################################
+  release:
+    name: Release & Publish
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      ##############################################
+      # VERSIONAMENTO (Changesets)
+      ##############################################
+      - name: Version packages
+        run: pnpm changeset version
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add .
+          git commit -m "chore(release): version packages" || echo "Nothing to commit"
+          git push
+
+      ##############################################
+      # BUILD FINAL
+      ##############################################
+      - run: pnpm turbo run build
+
+      - name: Validate packages
+        run: pnpm -r pack --dry-run
+
+      ##############################################
+      # PUBLISH NPM
+      ##############################################
+      - name: Publish to npm
+        run: pnpm changeset publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      ##############################################
+      # GITHUB RELEASE (TAG POR PACKAGE)
+      ##############################################
+      - name: Create GitHub Releases per package
+        run: |
+          for tag in $(git tag --points-at HEAD); do
+            gh release create "$tag" \
+              --title "$tag" \
+              --notes "Release $tag" || true
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
