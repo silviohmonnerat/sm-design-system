@@ -1,5 +1,16 @@
 # @silviomonnerat/ui
 
+## 1.0.0
+
+### Major Changes
+
+- abc0f26: Initial stable release.
+
+### Patch Changes
+
+- Updated dependencies [abc0f26]
+  - @silviomonnerat/hooks@1.0.0
+
 ## 4.0.0
 
 ### Major Changes

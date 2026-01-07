@@ -1,5 +1,11 @@
 # @silviomonnerat/hooks
 
+## 1.0.0
+
+### Major Changes
+
+- abc0f26: Initial stable release.
+
 ## 4.0.0
 
 ### Major Changes
