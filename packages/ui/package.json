@@ -1,6 +1,6 @@
 {
   "name": "@silviomonnerat/ui",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": false,
   "type": "module",
   "files": [
@@ -81,5 +81,7 @@
     },
     "./globals.css": "./dist/styles/globals.css"
   },
-  "sideEffects": ["./dist/styles/*.css"]
+  "sideEffects": [
+    "./dist/styles/*.css"
+  ]
 }
